@@ -1,28 +1,26 @@
 package com.springml.spark.salesforce
 
-import scala.util.control.Exception._
-
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.types.{BooleanType, ByteType, DataType, DoubleType, FloatType}
-import org.apache.spark.sql.types.{IntegerType, LongType, NullType, ShortType, StringType}
-import org.apache.spark.sql.types.{StructField, StructType, TimestampType}
+import org.apache.spark.sql.types._
+
+import scala.util.control.Exception._
 
 /**
- * Utility to InferSchema from the provided Sample
- */
+  * Utility to InferSchema from the provided Sample
+  */
 object InferSchema {
   private val logger = Logger.getLogger("InferSchema")
 
   /**
-   * This is much similar the InferSchema written for JSON
-   *     1. Infer type of each row
-   *     2. Merge row types to find common type
-   *     3. Replace any null types with string type
-   */
+    * This is much similar the InferSchema written for JSON
+    *     1. Infer type of each row
+    *     2. Merge row types to find common type
+    *     3. Replace any null types with string type
+    */
   def apply(sampleRdd: RDD[Array[String]], header: Array[String],
             sdf: SimpleDateFormat): StructType = {
     logger.debug("Sample RDD Size : " + sampleRdd.count)
@@ -38,22 +36,21 @@ object InferSchema {
     StructType(structFields)
   }
 
-  private def inferRowType(sdf:SimpleDateFormat)
+  private def inferRowType(sdf: SimpleDateFormat)
                           (rowSoFar: Array[DataType], next: Array[String]): Array[DataType] = {
     logger.debug("Rows so far : " + rowSoFar)
     logger.debug("Next row to be infered : " + next)
     var i = 0
     while (i < math.min(rowSoFar.length, next.length)) {
       rowSoFar(i) = inferField(rowSoFar(i), next(i), sdf)
-      i+=1
+      i += 1
     }
     rowSoFar
   }
 
-  private def mergeRowTypes(
-      first: Array[DataType],
-      second: Array[DataType]): Array[DataType] = {
-    first.zipAll(second, NullType, NullType).map { case ((a, b)) =>
+  private def mergeRowTypes(first: Array[DataType],
+                            second: Array[DataType]): Array[DataType] = {
+    first.zipAll(second, NullType, NullType).map { case (a, b) =>
       val tpe = findTightestCommonType(a, b).getOrElse(StringType)
       tpe match {
         case _: NullType => StringType
@@ -63,9 +60,9 @@ object InferSchema {
   }
 
   /**
-   * Infer type of string field. Given known type Double, and a string "1", there is no
-   * point checking if it is an Int, as the final type must be Double or higher.
-   */
+    * Infer type of string field. Given known type Double, and a string "1", there is no
+    * point checking if it is an Int, as the final type must be Double or higher.
+    */
   private def inferField(typeSoFar: DataType, field: String, sdf: SimpleDateFormat): DataType = {
     if (field == null || field.isEmpty) {
       typeSoFar
@@ -111,7 +108,7 @@ object InferSchema {
 
   def tryParseTimestamp(field: String, sdf: SimpleDateFormat): DataType = {
     if (sdf != null) {
-      if ((allCatch opt sdf.parse(field)).isDefined){
+      if ((allCatch opt sdf.parse(field)).isDefined) {
         TimestampType
       } else {
         tryParseBoolean(field)

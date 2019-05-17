@@ -1,24 +1,22 @@
 package com.springml.spark.salesforce
 
-import org.mockito.Mockito._
-import org.mockito.Matchers._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{ FunSuite, BeforeAndAfterEach}
 import com.springml.salesforce.wave.api.BulkAPI
-import org.apache.spark.{ SparkConf, SparkContext}
-import com.springml.salesforce.wave.model.{ JobInfo, BatchInfo}
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{ Row, DataFrame, SQLContext}
-import org.apache.spark.sql.types.{ StructType, StringType, StructField}
+import com.springml.salesforce.wave.model.{BatchInfo, JobInfo}
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.apache.spark.{SparkConf, SparkContext}
+import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
+import org.scalatest.{BeforeAndAfterEach, FunSuite}
 
 class TestSFObjectWriter extends FunSuite with MockitoSugar with BeforeAndAfterEach {
-  val contact = "Contact";
-  val jobId = "750B0000000WlhtIAC";
-  val batchId = "751B0000000scSHIAY";
-  val data = "Id,Description\n003B00000067Rnx,123456\n003B00000067Rnw,7890";
+  val contact = "Contact"
+  val jobId = "750B0000000WlhtIAC"
+  val batchId = "751B0000000scSHIAY"
+  val data = "Id,Description\n003B00000067Rnx,123456\n003B00000067Rnw,7890"
 
-  val bulkAPI = mock[BulkAPI](withSettings().serializable())
-  val writer = mock[SFObjectWriter]
+  val bulkAPI: BulkAPI = mock[BulkAPI](withSettings().serializable())
+  val writer: SFObjectWriter = mock[SFObjectWriter]
 
   var sparkConf: SparkConf = _
   var sc: SparkContext = _
@@ -40,7 +38,7 @@ class TestSFObjectWriter extends FunSuite with MockitoSugar with BeforeAndAfterE
     sc = new SparkContext(sparkConf)
   }
 
-  private def sampleDF() : DataFrame = {
+  private def sampleDF(): DataFrame = {
     val rowArray = new Array[Row](2)
     val fieldArray = new Array[String](2)
 
@@ -55,16 +53,16 @@ class TestSFObjectWriter extends FunSuite with MockitoSugar with BeforeAndAfterE
 
     val rdd = sc.parallelize(rowArray)
     val schema = StructType(
-      StructField("id", StringType, true) ::
-      StructField("desc", StringType, true) :: Nil)
+      StructField("id", StringType, nullable = true) ::
+        StructField("desc", StringType, nullable = true) :: Nil)
 
-    val sqlContext = new SQLContext(sc)
-    sqlContext.createDataFrame(rdd, schema)
+    SparkSession.builder()
+      .getOrCreate()
+      .createDataFrame(rdd, schema)
   }
 
-  test ("Write Object to Salesforce") {
-    val df = sampleDF();
-    val csvHeader = Utils.csvHeadder(df.schema)
+  test("Write Object to Salesforce") {
+    val df = sampleDF()
     writer.writeData(df.rdd)
     sc.stop()
   }

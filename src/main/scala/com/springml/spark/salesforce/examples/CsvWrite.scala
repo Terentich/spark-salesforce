@@ -19,12 +19,10 @@ package com.springml.spark.salesforce.examples
 import org.apache.spark.sql.SparkSession
 
 /**
- * Example to read a CSV file and write it into Salesforce Wave
- */
+  * Example to read a CSV file and write it into Salesforce Wave
+  */
 object CsvWrite {
-
   def main(args: Array[String]) {
-
     val ss = SparkSession.builder().master("local").appName("Test Utils").getOrCreate()
     val df = ss.read.option("header", "true").csv(args(1))
     val dataSetName = args(2)
@@ -33,7 +31,5 @@ object CsvWrite {
 
     df.write.format("com.springml.spark.salesforce").option("username", args(3)).
       option("password", args(4)).option("datasetName", dataSetName).save()
-
   }
-
 }

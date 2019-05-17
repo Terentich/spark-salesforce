@@ -1,35 +1,33 @@
 package com.springml.spark.salesforce.metadata
 
-import org.apache.spark.sql.types.{StructType, StringType, IntegerType, LongType,
-  FloatType, DateType, TimestampType, BooleanType, StructField}
-import org.scalatest.FunSuite
 import com.springml.spark.salesforce.Utils
+import org.apache.spark.sql.types._
+import org.scalatest.FunSuite
 
 /**
- */
+  */
 class TestMetadataConstructor extends FunSuite {
 
   test("Test Metadata generation") {
     val columnNames = List("c1", "c2", "c3", "c4")
-    val columnStruct = columnNames.map(colName => StructField(colName, StringType, true))
+    val columnStruct = columnNames.map(colName => StructField(colName, StringType, nullable = true))
     val schema = StructType(columnStruct)
 
-    val schemaString = MetadataConstructor.generateMetaString(schema,"sampleDataSet", Utils.metadataConfig(null))
+    val schemaString = MetadataConstructor.generateMetaString(schema, "sampleDataSet", Utils.metadataConfig(null))
     assert(schemaString.length > 0)
     assert(schemaString.contains("sampleDataSet"))
   }
 
   test("Test Metadata generation With Custom MetadataConfig") {
-    val columnNames = List("c1", "c2", "c3", "c4")
-    val intField = StructField("intCol", IntegerType, true)
-    val longField = StructField("longCol", LongType, true)
-    val floatField = StructField("floatCol", FloatType, true)
-    val dateField = StructField("dateCol", DateType, true)
-    val timestampField = StructField("timestampCol", TimestampType, true)
-    val stringField = StructField("stringCol", StringType, true)
-    val someTypeField = StructField("someTypeCol", BooleanType, true)
+    val intField = StructField("intCol", IntegerType, nullable = true)
+    val longField = StructField("longCol", LongType, nullable = true)
+    val floatField = StructField("floatCol", FloatType, nullable = true)
+    val dateField = StructField("dateCol", DateType, nullable = true)
+    val timestampField = StructField("timestampCol", TimestampType, nullable = true)
+    val stringField = StructField("stringCol", StringType, nullable = true)
+    val someTypeField = StructField("someTypeCol", BooleanType, nullable = true)
 
-    val columnStruct = Array[StructField] (intField, longField, floatField, dateField, timestampField, stringField, someTypeField)
+    val columnStruct = Array[StructField](intField, longField, floatField, dateField, timestampField, stringField, someTypeField)
 
     val schema = StructType(columnStruct)
 

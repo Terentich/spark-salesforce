@@ -20,26 +20,24 @@ import com.sforce.soap.partner.sobject.SObject
 import com.springml.spark.salesforce.Utils._
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.{Row, SaveMode}
 
 /**
- * Writer responsible for writing the objects into Salesforce Wave
- * It uses Partner External Metadata SOAP API to write the dataset
- */
-class DataWriter (
-    val userName: String,
-    val password: String,
-    val login: String,
-    val version: String,
-    val datasetName: String,
-    val appName: String
-    ) extends Serializable {
-  @transient val logger = Logger.getLogger(classOf[DataWriter])
+  * Writer responsible for writing the objects into Salesforce Wave
+  * It uses Partner External Metadata SOAP API to write the dataset
+  */
+class DataWriter(val userName: String,
+                 val password: String,
+                 val login: String,
+                 val version: String,
+                 val datasetName: String,
+                 val appName: String
+                ) extends Serializable {
+  @transient private val logger = Logger.getLogger(classOf[DataWriter])
 
   def writeMetadata(metaDataJson: String,
-      mode: SaveMode,
-      upsert: Boolean): Option[String] = {
+                    mode: SaveMode,
+                    upsert: Boolean): Option[String] = {
     val partnerConnection = createConnection(userName, password, login, version)
     val oper = operation(mode, upsert)
 
@@ -76,7 +74,7 @@ class DataWriter (
   def writeData(rdd: RDD[Row], metadataId: String): Boolean = {
     val csvRDD = rdd.map(row => row.toSeq.map(value => Utils.rowValue(value)).mkString(","))
     csvRDD.mapPartitionsWithIndex {
-      case (index, iterator) => {
+      case (index, iterator) =>
         @transient val logger = Logger.getLogger(classOf[DataWriter])
         val partNumber = index + 1
         val data = "\n" + iterator.toArray.mkString("\n")
@@ -101,7 +99,6 @@ class DataWriter (
           }
         }).head
         List(resultSuccess).iterator
-      }
 
     }.reduce((a, b) => a && b)
   }

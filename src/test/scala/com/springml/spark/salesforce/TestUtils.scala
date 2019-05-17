@@ -37,14 +37,14 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
 
     assert(metadataConfig.size == 8)
     val integerConfig = metadataConfig.get("integer")
-    assert(integerConfig.isDefined == true)
-    assert(integerConfig.get.get("precision").isDefined == true)
+    assert(integerConfig.isDefined)
+    assert(integerConfig.get.get("precision").isDefined)
     val timestampConfig = metadataConfig.get("timestamp")
-    assert(timestampConfig.isDefined == true)
-    assert(timestampConfig.get.get("format").isDefined == true)
+    assert(timestampConfig.isDefined)
+    assert(timestampConfig.get.get("format").isDefined)
     val doubleConfig = metadataConfig.get("double")
-    assert(doubleConfig.isDefined == true)
-    assert(doubleConfig.get.get("precision").isDefined == true)
+    assert(doubleConfig.isDefined)
+    assert(doubleConfig.get.get("precision").isDefined)
   }
 
   test("Test Custom Metadata Configuration") {
@@ -53,9 +53,9 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
 
     assert(metadataConfig.size == 8)
     val timestampConfig = metadataConfig.get("timestamp")
-    assert(timestampConfig.isDefined == true)
-    assert(timestampConfig.get.get("format").isDefined == true)
-    assert(timestampConfig.get.get("format").get == "yyyy/MM/dd'T'HH:mm:ss")
+    assert(timestampConfig.isDefined)
+    assert(timestampConfig.get.get("format").isDefined)
+    assert(timestampConfig.get("format") == "yyyy/MM/dd'T'HH:mm:ss")
   }
 
   test("Test Custom Metadata Configuration with new datatype") {
@@ -64,9 +64,9 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
 
     assert(metadataConfig.size == 9)
     val myDataTypeConfig = metadataConfig.get("mydataType")
-    assert(myDataTypeConfig.isDefined == true)
-    assert(myDataTypeConfig.get.get("format").isDefined == true)
-    assert(myDataTypeConfig.get.get("format").get == "yy-MM-dd")
+    assert(myDataTypeConfig.isDefined)
+    assert(myDataTypeConfig.get.get("format").isDefined)
+    assert(myDataTypeConfig.get("format") == "yy-MM-dd")
   }
 
   test("Test repartition for in memory RDD") {
@@ -76,17 +76,13 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
     })
 
     val inMemoryRDD = ss.sparkContext.makeRDD(inMemoryData)
-    val columnNames = List("c1", "c2", "c3", "c4")
-    val columnStruct = columnNames.map(colName => StructField(colName, StringType, true))
-    val schema = StructType(columnStruct)
-    val inMemoryDF = ss.sqlContext.createDataFrame(inMemoryRDD, schema)
 
     val repartitionDF = Utils.repartition(inMemoryRDD)
     assert(repartitionDF.partitions.length == 1)
   }
 
   test("Test repartition for local CSV file with size less than 10 MB") {
-    val csvURL= getClass.getResource("/ad-server-data-formatted.csv")
+    val csvURL = getClass.getResource("/ad-server-data-formatted.csv")
     val csvFilePath = csvURL.getPath
     val csvDF = ss.read.option("header", "true").csv(csvFilePath)
 
@@ -95,7 +91,7 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
   }
 
   test("Test repartition for local CSV file with size > 10 MB and < 20 MB") {
-    val csvURL= getClass.getResource("/minified_GDS_90.csv")
+    val csvURL = getClass.getResource("/minified_GDS_90.csv")
     val csvFilePath = csvURL.getPath
     val csvDF = ss.read.option("header", "true").csv(csvFilePath)
 
@@ -104,13 +100,13 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
   }
 
   test("Check whether CSV Header constructed properly") {
-    val intField = StructField("c1", IntegerType, true)
-    val longField = StructField("c2", LongType, true)
-    val floatField = StructField("c3", FloatType, true)
-    val dateField = StructField("c4", DateType, true)
-    val stringField = StructField("c5", StringType, true)
+    val intField = StructField("c1", IntegerType, nullable = true)
+    val longField = StructField("c2", LongType, nullable = true)
+    val floatField = StructField("c3", FloatType, nullable = true)
+    val dateField = StructField("c4", DateType, nullable = true)
+    val stringField = StructField("c5", StringType, nullable = true)
 
-    val columnStruct = Array[StructField] (intField, longField, floatField, dateField, stringField)
+    val columnStruct = Array[StructField](intField, longField, floatField, dateField, stringField)
     val schema = StructType(columnStruct)
 
     val expected = "c1,c2,c3,c4,c5"
@@ -124,7 +120,7 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
     val maxSleepIntervalDuration = FiniteDuration(500L, MILLISECONDS)
     var completed = false
     var attempts = 0
-    var expectedNumberAttempts = 2
+    val expectedNumberAttempts = 2
     Utils.retryWithExponentialBackoff(() => {
       attempts += 1
       completed = attempts == expectedNumberAttempts
@@ -133,5 +129,4 @@ class TestUtils extends FunSuite with BeforeAndAfterEach {
 
     assert(attempts == expectedNumberAttempts)
   }
-
 }

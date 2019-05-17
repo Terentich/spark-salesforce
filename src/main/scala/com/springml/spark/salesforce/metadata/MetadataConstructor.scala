@@ -1,10 +1,10 @@
 package com.springml.spark.salesforce.metadata
 
-import org.apache.spark.sql.types.{StructType, StructField}
+import org.apache.spark.sql.types.{StructField, StructType}
 
 /**
- * Utility to construct Metadata
- */
+  * Utility to construct Metadata
+  */
 object MetadataConstructor {
 
   private def fieldJson(field: StructField, datasetName: String, dataTypeMap: Map[String, Map[String, String]]) = {
@@ -25,17 +25,17 @@ object MetadataConstructor {
     } """
   }
 
-  private def typeJson(dfDataType: String, dataTypeMap: Map[String, Map[String, String]]):String = {
+  private def typeJson(dfDataType: String, dataTypeMap: Map[String, Map[String, String]]): String = {
     // For date, it is not possible to get the Format.
     // So it is considered as String.
     // User may update the metadata in Salesforce wave
     val someSFDataType = dataTypeMap.get(dfDataType)
-    var sfDataType = Map ("wave_type" -> "Text")
+    var sfDataType = Map("wave_type" -> "Text")
     if (someSFDataType.isDefined) {
       sfDataType = someSFDataType.get
     }
 
-    val waveType = sfDataType.get("wave_type").get
+    val waveType = sfDataType("wave_type")
     var typeJson = s""""type": "$waveType""""
 
     val precision = sfDataType.get("precision")
@@ -82,27 +82,27 @@ object MetadataConstructor {
     typeJson
   }
 
-  def generateMetaString(schema: StructType, datasetName: String, dataTypeMap: Map[String, Map[String, String]]):String = {
+  def generateMetaString(schema: StructType, datasetName: String, dataTypeMap: Map[String, Map[String, String]]): String = {
     val beginJsonString =
       s"""
-        |{
-        |"fileFormat": {
-        |"charsetName": "UTF-8",
-        |"fieldsDelimitedBy": ",",
-        |"numberOfLinesToIgnore": 0
-        |},
-        |"objects": [
-        |{
-        |"connector": "AcmeCSVConnector",
-        |"description": "",
-        |"fullyQualifiedName": "$datasetName",
-        |"label": "$datasetName",
-        |"name": "$datasetName",
+         |{
+         |"fileFormat": {
+         |"charsetName": "UTF-8",
+         |"fieldsDelimitedBy": ",",
+         |"numberOfLinesToIgnore": 0
+         |},
+         |"objects": [
+         |{
+         |"connector": "AcmeCSVConnector",
+         |"description": "",
+         |"fullyQualifiedName": "$datasetName",
+         |"label": "$datasetName",
+         |"name": "$datasetName",
       """.stripMargin
 
     val fieldsJson = schema.fields.map(field => fieldJson(field, datasetName, dataTypeMap)).mkString(",")
 
-    val finalJson = beginJsonString+"""  "fields":[  """+ fieldsJson+"]"+"}]}"
+    val finalJson = beginJsonString +"""  "fields":[  """ + fieldsJson + "]" + "}]}"
 
     finalJson
   }

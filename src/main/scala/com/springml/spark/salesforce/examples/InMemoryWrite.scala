@@ -15,17 +15,15 @@
  */
 package com.springml.spark.salesforce.examples
 
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SQLContext}
-import org.apache.spark.sql.types.{StructType, StringType, StructField}
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
- * Writing in memory csv data to salesforce
- */
+  * Writing in memory csv data to salesforce
+  */
 object InMemoryWrite {
-
   def main(args: Array[String]) {
-
     val sparkConf = new SparkConf().setMaster(args(0)).setAppName("csv write")
     val sc = new SparkContext(sparkConf)
     val sqlContext = new SQLContext(sc)
@@ -38,15 +36,13 @@ object InMemoryWrite {
 
     val inMemoryRDD = sc.makeRDD(inMemoryData)
     val columnNames = List("c1", "c2", "c3", "c4")
-    val columnStruct = columnNames.map(colName => StructField(colName, StringType, true))
+    val columnStruct = columnNames.map(colName => StructField(colName, StringType, nullable = true))
     val schema = StructType(columnStruct)
-   
+
     val inMemoryDF = sqlContext.createDataFrame(inMemoryRDD, schema)
     inMemoryDF.printSchema()
-    
+
     inMemoryDF.write.format("com.springml.spark.salesforce").option("username", args(2)).
       option("password", args(3)).option("datasetName", dataSetName).save()
-
   }
-
 }

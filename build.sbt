@@ -47,12 +47,11 @@ spIncludeMaven := true
 
 spShortDescription := "Spark Salesforce Wave Connector"
 
-spDescription := """Spark Salesforce Wave Connector
-                    | - Creates Salesforce Wave Datasets using dataframe
-                    | - Constructs Salesforce Wave dataset's metadata using schema present in dataframe
-                    | - Can use custom metadata for constructing Salesforce Wave dataset's metadata""".stripMargin
-
-// licenses += "Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")
+spDescription :=
+  """Spark Salesforce Wave Connector
+    | - Creates Salesforce Wave Datasets using dataframe
+    | - Constructs Salesforce Wave dataset's metadata using schema present in dataframe
+    | - Can use custom metadata for constructing Salesforce Wave dataset's metadata""".stripMargin
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
@@ -61,29 +60,28 @@ publishTo := {
   if (version.value.endsWith("SNAPSHOT"))
     Some("snapshots" at nexus + "content/repositories/snapshots")
   else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-pomExtra := (
-  <url>https://github.com/springml/spark-salesforce</url>
-    <licenses>
-      <license>
-        <name>Apache License, Verision 2.0</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
-        <distribution>repo</distribution>
-      </license>
-    </licenses>
-    <scm>
-      <connection>scm:git:github.com/springml/spark-salesforce</connection>
-      <developerConnection>scm:git:git@github.com:springml/spark-salesforce</developerConnection>
-      <url>github.com/springml/spark-salesforce</url>
-    </scm>
-    <developers>
-      <developer>
-        <id>springml</id>
-        <name>Springml</name>
-        <url>http://www.springml.com</url>
-      </developer>
-    </developers>)
+pomExtra := <url>https://github.com/springml/spark-salesforce</url>
+  <licenses>
+    <license>
+      <name>Apache License, Verision 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git:github.com/springml/spark-salesforce</connection>
+    <developerConnection>scm:git:git@github.com:springml/spark-salesforce</developerConnection>
+    <url>github.com/springml/spark-salesforce</url>
+  </scm>
+  <developers>
+    <developer>
+      <id>springml</id>
+      <name>Springml</name>
+      <url>http://www.springml.com</url>
+    </developer>
+  </developers>
 
 

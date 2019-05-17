@@ -16,37 +16,33 @@
 
 package com.springml.spark.salesforce
 
-import scala.io.Source
-import scala.util.parsing.json._
+import com.madhukaraphatak.sizeof.SizeEstimator
+import com.sforce.soap.partner.fault.UnexpectedErrorFault
 import com.sforce.soap.partner.{Connector, PartnerConnection, SaveResult}
 import com.sforce.ws.ConnectorConfig
-import com.madhukaraphatak.sizeof.SizeEstimator
+import com.springml.spark.salesforce.metadata.MetadataConstructor
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.{DoubleType, IntegerType, StructType}
-
-import scala.collection.immutable.HashMap
-import com.springml.spark.salesforce.metadata.MetadataConstructor
-import com.sforce.soap.partner.sobject.SObject
-import scala.concurrent.duration._
-import com.sforce.soap.partner.fault.UnexpectedErrorFault
+import org.apache.spark.sql.types.StructType
 
 import scala.concurrent.duration.FiniteDuration
+import scala.io.Source
 import scala.util.Try
+import scala.util.parsing.json._
 
 /**
- * Utility to construct metadata and repartition RDD
- */
+  * Utility to construct metadata and repartition RDD
+  */
 object Utils extends Serializable {
-  @transient val logger = Logger.getLogger("Utils")
+  @transient private val logger = Logger.getLogger("Utils")
 
   def createConnection(username: String, password: String,
-      login: String, version: String):PartnerConnection = {
+                       login: String, version: String): PartnerConnection = {
     val config = new ConnectorConfig()
     config.setUsername(username)
     config.setPassword(password)
-    val endpoint = if (login.endsWith("/")) (login + "services/Soap/u/" + version) else (login + "/services/Soap/u/" + version)
+    val endpoint = if (login.endsWith("/")) login + "services/Soap/u/" + version else login + "/services/Soap/u/" + version
     config.setAuthEndpoint(endpoint)
     config.setServiceEndpoint(endpoint)
     Connector.newConnection(config)
@@ -54,11 +50,13 @@ object Utils extends Serializable {
 
   def logSaveResultError(result: SaveResult): Unit = {
 
-    result.getErrors.map(error => {
+    result.getErrors.foreach(error => {
       logger.error(error.getMessage)
       println(error.getMessage)
-      error.getFields.map(logger.error(_))
-      error.getFields.map { println }
+      error.getFields.foreach(logger.error(_))
+      error.getFields.foreach {
+        println
+      }
     })
   }
 
@@ -71,7 +69,7 @@ object Utils extends Serializable {
     }
 
     val shuffle = rdd.partitions.length < partitions
-    rdd.coalesce(partitions.toInt, shuffle)
+    rdd.coalesce(partitions, shuffle)
   }
 
   def getTotalSize(rdd: RDD[Row]): Long = {
@@ -81,7 +79,7 @@ object Utils extends Serializable {
     var totalSize = 0l
 
     if (totalRows > NO_OF_SAMPLE_ROWS) {
-      val sampleObj = rdd.takeSample(false, NO_OF_SAMPLE_ROWS)
+      val sampleObj = rdd.takeSample(withReplacement = false, NO_OF_SAMPLE_ROWS)
       val sampleRowSize = rowSize(sampleObj)
       totalSize = sampleRowSize * (totalRows / NO_OF_SAMPLE_ROWS)
     } else {
@@ -92,26 +90,26 @@ object Utils extends Serializable {
     totalSize
   }
 
-  def rddSize(rdd: RDD[Row]) : Long = {
+  def rddSize(rdd: RDD[Row]): Long = {
     rowSize(rdd.collect())
   }
 
-  def rowSize(rows: Array[Row]) : Long = {
-      var sizeOfRows = 0l
-      for (row <- rows) {
-        // Converting to bytes
-        val rowSize = SizeEstimator.estimate(row.toSeq.map { value => rowValue(value) }.mkString(","))
-        sizeOfRows += rowSize
-      }
+  def rowSize(rows: Array[Row]): Long = {
+    var sizeOfRows = 0l
+    for (row <- rows) {
+      // Converting to bytes
+      val rowSize = SizeEstimator.estimate(row.toSeq.map { value => rowValue(value) }.mkString(","))
+      sizeOfRows += rowSize
+    }
 
-      sizeOfRows
+    sizeOfRows
   }
 
-  def rowValue(rowVal: Any) : String = {
+  def rowValue(rowVal: Any): String = {
     if (rowVal == null) {
       ""
     } else {
-      var value = rowVal.toString()
+      var value = rowVal.toString
       if (value.contains("\"")) {
         value = value.replaceAll("\"", "\"\"")
       }
@@ -122,7 +120,7 @@ object Utils extends Serializable {
     }
   }
 
-  def metadataConfig(usersMetadataConfig: Option[String]) = {
+  def metadataConfig(usersMetadataConfig: Option[String]): Map[String, Map[String, String]] = {
     var systemMetadataConfig = readMetadataConfig()
     if (usersMetadataConfig != null && usersMetadataConfig.isDefined) {
       val usersMetadataConfigMap = readJSON(usersMetadataConfig.get)
@@ -132,15 +130,14 @@ object Utils extends Serializable {
     systemMetadataConfig
   }
 
-  def csvHeadder(schema: StructType) : String = {
+  def csvHeadder(schema: StructType): String = {
     schema.fields.map(field => field.name).mkString(",")
   }
 
-  def metadata(
-      metadataFile: Option[String],
-      usersMetadataConfig: Option[String],
-      schema: StructType,
-      datasetName: String) : String = {
+  def metadata(metadataFile: Option[String],
+               usersMetadataConfig: Option[String],
+               schema: StructType,
+               datasetName: String): String = {
 
     if (metadataFile != null && metadataFile.isDefined) {
       logger.info("Using provided Metadata Configuration")
@@ -155,35 +152,33 @@ object Utils extends Serializable {
   }
 
   def monitorJob(objId: String, username: String, password:
-      String, login: String, version: String) : Boolean = {
-    var partnerConnection = Utils.createConnection(username, password, login, version)
+  String, login: String, version: String): Boolean = {
+    val partnerConnection = Utils.createConnection(username, password, login, version)
     try {
       monitorJob(partnerConnection, objId, 500)
     } catch {
-      case uefault: UnexpectedErrorFault => {
+      case uefault: UnexpectedErrorFault =>
         val exMsg = uefault.getExceptionMessage
         logger.info("Error Message from Salesforce Wave " + exMsg)
         if (exMsg contains "Invalid Session") {
           logger.info("Session expired. Monitoring Job using new connection")
-          return monitorJob(objId, username, password, login, version)
+          monitorJob(objId, username, password, login, version)
         } else {
           throw uefault
         }
-      }
-      case ex: Exception => {
+      case ex: Exception =>
         logger.info("Exception while checking the job in Salesforce Wave")
         throw ex
-      }
     } finally {
       Try(partnerConnection.logout())
     }
   }
 
   def retryWithExponentialBackoff(
-      func:() => Boolean,
-      timeoutDuration: FiniteDuration,
-      initSleepInterval: FiniteDuration,
-      maxSleepInterval: FiniteDuration): Boolean = {
+                                   func: () => Boolean,
+                                   timeoutDuration: FiniteDuration,
+                                   initSleepInterval: FiniteDuration,
+                                   maxSleepInterval: FiniteDuration): Boolean = {
 
     val timeout = timeoutDuration.toMillis
     var waited = 0L
@@ -208,46 +203,38 @@ object Utils extends Serializable {
   }
 
   private def monitorJob(connection: PartnerConnection,
-      objId: String, waitDuration: Long) : Boolean = {
+                         objId: String, waitDuration: Long): Boolean = {
     val sobjects = connection.retrieve("Status", "InsightsExternalData", Array(objId))
-    if (sobjects != null && sobjects.length > 0) {
+    if (sobjects != null && sobjects.nonEmpty) {
       val status = sobjects(0).getField("Status")
       status match {
-        case "Completed" => {
+        case "Completed" =>
           logger.info("Upload Job completed successfully")
           true
-        }
-        case "CompletedWithWarnings" => {
+        case "CompletedWithWarnings" =>
           logger.warn("Upload Job completed with warnings. Check Monitor Job in Salesforce Wave for more details")
           true
-        }
-        case "Failed" => {
+        case "Failed" =>
           logger.error("Upload Job failed in Salesforce Wave. Check Monitor Job in Salesforce Wave for more details")
           false
-        }
-        case "InProgress" => {
+        case "InProgress" =>
           logger.info("Upload Job is in progress")
           Thread.sleep(waitDuration)
           monitorJob(connection, objId, maxWaitSeconds(waitDuration))
-        }
-        case "New" => {
+        case "New" =>
           logger.info("Upload Job not yet started in Salesforce Wave")
           Thread.sleep(waitDuration)
           monitorJob(connection, objId, maxWaitSeconds(waitDuration))
-        }
-        case "NotProcessed" => {
+        case "NotProcessed" =>
           logger.info("Upload Job not processed in Salesforce Wave. Check Monitor Job in Salesforce Wave for more details")
           true
-        }
-        case "Queued" => {
+        case "Queued" =>
           logger.info("Upload Job Queued in Salesforce Wave")
           Thread.sleep(waitDuration)
           monitorJob(connection, objId, maxWaitSeconds(waitDuration))
-        }
-        case unknown => {
+        case unknown =>
           logger.info("Upload Job status is not known " + unknown)
           true
-        }
       }
     } else {
       logger.error("Upload Job details not found in Salesforce Wave")
@@ -255,23 +242,22 @@ object Utils extends Serializable {
     }
   }
 
-  private def maxWaitSeconds(waitDuration: Long) : Long = {
+  private def maxWaitSeconds(waitDuration: Long): Long = {
     // 2 Minutes
     val maxWaitDuration = 120000
     if (waitDuration >= maxWaitDuration) maxWaitDuration else waitDuration * 2
   }
 
-  private def readMetadataConfig() : Map[String, Map[String, String]] = {
+  private def readMetadataConfig(): Map[String, Map[String, String]] = {
     val source = Source.fromURL(getClass.getResource("/metadata_config.json"))
     val jsonContent = try source.mkString finally source.close()
 
     readJSON(jsonContent)
   }
 
-  private def readJSON(jsonContent : String) : Map[String, Map[String, String]]= {
+  private def readJSON(jsonContent: String): Map[String, Map[String, String]] = {
     val result = JSON.parseFull(jsonContent)
     val resMap: Map[String, Map[String, String]] = result.get.asInstanceOf[Map[String, Map[String, String]]]
     resMap
   }
-
 }
