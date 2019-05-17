@@ -116,10 +116,7 @@ case class BulkRelation(
     }
   }
 
-  // Create new instance of BulkAPI every time because Spark workers cannot serialize the object
-  private def bulkAPI(): BulkAPI = {
-    APIFactory.getInstance().bulkAPI(username, password, login, version)
-  }
+  private lazy val bulkAPI = APIFactory.getInstance().bulkAPI(username, password, login, version)
 
   private def awaitJobCompleted(jobId: String): Boolean = {
     val timeoutDuration = FiniteDuration(timeout, MILLISECONDS)
